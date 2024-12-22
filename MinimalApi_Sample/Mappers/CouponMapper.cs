@@ -5,7 +5,17 @@ namespace MinimalApi_Sample.Mappers
 {
     public static class CouponMapper
     {
-        public static Coupon ToCouponFromCreate(this CreateCouponDto createCouponDto)
+        public static Coupon ToCouponFromUpdateDto(this UpdateCouponDto updateCouponDto)
+        {
+            return new Coupon()
+            {
+                Id = updateCouponDto.Id,
+                Name = updateCouponDto.Name,
+                PercentDiscount = updateCouponDto.PercentDiscount,
+                IsActive = updateCouponDto.IsActive
+            };
+        }
+        public static Coupon ToCouponFromCreateDto(this CreateCouponDto createCouponDto)
         {
             return new Coupon()
             {
