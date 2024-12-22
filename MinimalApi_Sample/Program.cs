@@ -8,6 +8,7 @@ using System.Collections;
 using FluentValidation;
 using MinimalApi_Sample;
 using System.Net;
+using System.ComponentModel.DataAnnotations;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -117,8 +118,6 @@ app.MapPut("/api/coupon/", async (IValidator<UpdateCouponDto> _validator, [FromB
     var existingCoupon = CouponStore.couponList.FirstOrDefault(c => c.Id == updateCouponDto.Id);
     if (existingCoupon == null)
     {
-        response.IsSuccess = false;
-        response.StatusCode = HttpStatusCode.NotFound;
         response.ErrorMessage.Add($"Coupon with id {updateCouponDto.Id} does not exist");
         return Results.NotFound(response);
     }
@@ -140,8 +139,27 @@ app.MapPut("/api/coupon/", async (IValidator<UpdateCouponDto> _validator, [FromB
 
 
 app.MapDelete("/api/coupon/{id:int}", (int id) => {
+    APIResponse response = new() { IsSuccess = false, StatusCode = HttpStatusCode.BadRequest };
+
+    var existingCoupon = CouponStore.couponList.FirstOrDefault(c => c.Id == id);
+    if (existingCoupon == null)
+    {
+        response.ErrorMessage.Add($"Coupon with id {id} does not exist");
+        return Results.NotFound(response);
+    }
+    else
+    {
+        CouponStore.couponList.Remove(existingCoupon);
+        response.IsSuccess = true;
+        response.StatusCode = HttpStatusCode.OK;
+        return Results.Ok(response);
+    }
+
     
-});
+
+    //return Results.CreateddAtRoute("CreateCoupon", new{ id = createdCoupon.Id}, createdCoupon.ToCouponDtoFromCoupon());
+    //return Results.Created($"/api/coupon/{createdCoupon.Id}", createdCoupon);
+}).WithName("UpdateCoupon").Accepts<UpdateCouponDto>("application/json").Produces<APIResponse>(200).Produces(400);
 
 
 app.UseHttpsRedirection();
