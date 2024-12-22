@@ -8,6 +8,7 @@ using System.Collections;
 using FluentValidation;
 using MinimalApi_Sample;
 using System.Net;
+using System.ComponentModel.DataAnnotations;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -35,6 +36,7 @@ return Results.Ok("Hello World! I'm Abdullahi Yusuf. Trying out MapPost");
 });
 
 
+
 app.MapGet("/api/coupon", (ILogger<Program> _logger) => {
     _logger.Log(LogLevel.Information, "Getting all Coupons");
     
@@ -45,6 +47,8 @@ app.MapGet("/api/coupon", (ILogger<Program> _logger) => {
 
     return Results.Ok(response);
 }).Produces<IEnumerable<APIResponse>>(200);
+
+
 
 app.MapGet("/api/coupon/{id:int}", (ILogger<Program> _logger, int id) => {
 
@@ -63,6 +67,8 @@ app.MapGet("/api/coupon/{id:int}", (ILogger<Program> _logger, int id) => {
     return Results.Ok(response);
 }).WithName("GetCoupon").Produces<APIResponse>(200);
 
+
+
 app.MapPost("/api/coupon/", async (IValidator<CreateCouponDto> _validator, [FromBody] CreateCouponDto newCouponDto) => {
     APIResponse response = new() { IsSuccess = false, StatusCode = HttpStatusCode.BadRequest };
 
@@ -80,7 +86,7 @@ app.MapPost("/api/coupon/", async (IValidator<CreateCouponDto> _validator, [From
         return Results.BadRequest(response);
     }
 
-    var createdCoupon = newCouponDto.ToCouponFromCreate();
+    var createdCoupon = newCouponDto.ToCouponFromCreateDto();
 
     createdCoupon.Id = CouponStore.couponList.OrderByDescending(c => c.Id).FirstOrDefault().Id + 1;
     CouponStore.couponList.Add(createdCoupon);
@@ -95,13 +101,66 @@ app.MapPost("/api/coupon/", async (IValidator<CreateCouponDto> _validator, [From
     //return Results.Created($"/api/coupon/{createdCoupon.Id}", createdCoupon);
 }).WithName("CreateCoupon").Accepts<CreateCouponDto>("application/json").Produces<APIResponse>(201).Produces(400); 
 
-app.MapPut("/api/coupon/", () => {
-    
-}); 
+
+
+app.MapPut("/api/coupon/", async (IValidator<UpdateCouponDto> _validator, [FromBody] UpdateCouponDto updateCouponDto) => {
+    APIResponse response = new() { IsSuccess = false, StatusCode = HttpStatusCode.BadRequest };
+
+
+    var validationResult = await _validator.ValidateAsync(updateCouponDto);
+
+    if (!validationResult.IsValid)
+    {
+        response.ErrorMessage.Add(validationResult.Errors.FirstOrDefault().ToString());
+        return Results.BadRequest(response);
+    }
+
+    var existingCoupon = CouponStore.couponList.FirstOrDefault(c => c.Id == updateCouponDto.Id);
+    if (existingCoupon == null)
+    {
+        response.ErrorMessage.Add($"Coupon with id {updateCouponDto.Id} does not exist");
+        return Results.NotFound(response);
+    }
+
+    existingCoupon.Name = updateCouponDto.Name;
+    existingCoupon.PercentDiscount = updateCouponDto.PercentDiscount;
+    existingCoupon.IsActive = updateCouponDto.IsActive;
+
+    response.Result = existingCoupon.ToCouponDtoFromCoupon();
+    response.IsSuccess = true;
+    response.StatusCode = HttpStatusCode.OK;
+    return Results.Ok(response);
+
+    //return Results.CreateddAtRoute("CreateCoupon", new{ id = createdCoupon.Id}, createdCoupon.ToCouponDtoFromCoupon());
+    //return Results.Created($"/api/coupon/{createdCoupon.Id}", createdCoupon);
+}).WithName("UpdateCoupon").Accepts<UpdateCouponDto>("application/json").Produces<APIResponse>(200).Produces(400);
+
+
+
 
 app.MapDelete("/api/coupon/{id:int}", (int id) => {
+    APIResponse response = new() { IsSuccess = false, StatusCode = HttpStatusCode.BadRequest };
+
+    var existingCoupon = CouponStore.couponList.FirstOrDefault(c => c.Id == id);
+    if (existingCoupon == null)
+    {
+        response.ErrorMessage.Add($"Coupon with id {id} does not exist");
+        return Results.NotFound(response);
+    }
+    else
+    {
+        CouponStore.couponList.Remove(existingCoupon);
+        response.IsSuccess = true;
+        response.StatusCode = HttpStatusCode.OK;
+        return Results.Ok(response);
+    }
+
     
-});
+
+    //return Results.CreateddAtRoute("CreateCoupon", new{ id = createdCoupon.Id}, createdCoupon.ToCouponDtoFromCoupon());
+    //return Results.Created($"/api/coupon/{createdCoupon.Id}", createdCoupon);
+}).WithName("UpdateCoupon").Accepts<UpdateCouponDto>("application/json").Produces<APIResponse>(200).Produces(400);
+
 
 app.UseHttpsRedirection();
 
