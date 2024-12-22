@@ -1,5 +1,9 @@
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Mvc;
 using MinimalApi_Sample.Data;
+using MinimalApi_Sample.Models;
+using MinimalApi_Sample.Dtos;
+using MinimalApi_Sample.Mappers;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -34,8 +38,19 @@ app.MapGet("/api/coupon/{id:int}", (int id) => {
     return Results.Ok(CouponStore.couponList.FirstOrDefault(c => c.Id == id));
 });
 
-app.MapPost("/api/coupon/", () => {
-    
+app.MapPost("/api/coupon/", ([FromBody] CreateCouponDto newCoupon) => {
+    if (string.IsNullOrWhiteSpace(newCoupon.Name))
+        return Results.BadRequest("Invalid coupon Id/Name");
+
+    if (CouponStore.couponList.FirstOrDefault(c => c.Name.ToLower() == newCoupon.Name.ToLower()) != null)
+        return Results.BadRequest("Coupon name already exists");
+
+    var createdCoupon = newCoupon.ToCouponFromCreate();
+
+    createdCoupon.Id = CouponStore.couponList.OrderByDescending(c => c.Id).FirstOrDefault().Id + 1;
+    CouponStore.couponList.Add(createdCoupon);
+
+    return Results.Ok(createdCoupon);
 }); 
 
 app.MapPut("/api/coupon/", () => {
