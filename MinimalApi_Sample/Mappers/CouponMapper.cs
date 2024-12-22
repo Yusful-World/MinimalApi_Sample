@@ -11,8 +11,19 @@ namespace MinimalApi_Sample.Mappers
             {
                 Name = createCouponDto.Name,
                 PercentDiscount = createCouponDto.PercentDiscount,
-                CreatedOn = createCouponDto.CreatedOn,
-                LastUpdated = createCouponDto.LastUpdated
+                IsActive = createCouponDto.IsActive
+            };
+        }
+
+        public static CouponDto ToCouponDtoFromCoupon(this Coupon coupon)
+        {
+            return new CouponDto()
+            {
+                Id = coupon.Id,
+                Name = coupon.Name,
+                PercentDiscount = coupon.PercentDiscount,
+                IsActive = coupon.IsActive,
+                CreatedOn = coupon.CreatedOn
             };
         }
     }
